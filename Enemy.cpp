@@ -19,7 +19,7 @@ void Enemy::RandomMove()
 
 void Enemy::RightHandMove()
 {
-
+	//‰E‚Ì•ûŒü‚É‹C‚ð•t‚¯‚Ä
 }
 
 void Enemy::LeftHandMove()
