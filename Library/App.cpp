@@ -1,14 +1,14 @@
 #include "App.h"
 #include "SceneManager.h"
 #include "ObjectManager.h"
-//#include "Time.h"
+#include "Time.h"
 #include <DxLib.h>
 
 void AppInit()
 {
 	ObjectManager::Init();
 	SceneManager::Init();
-//	Time::Init();
+	Time::Init();
 }
 
 void AppUpdate()
@@ -19,7 +19,7 @@ void AppUpdate()
 
 void AppDraw()
 {
-//	Time::Refresh();
+	Time::Refresh();
 	SceneManager::Draw();
 	ObjectManager::Draw();
 }

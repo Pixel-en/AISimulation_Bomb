@@ -51,10 +51,16 @@
       <Filter>Library</Filter>
     </ClCompile>
     <ClCompile Include="Source\Input.cpp" />
-    <ClCompile Include="Stage.cpp" />
-    <ClCompile Include="Player.cpp" />
     <ClCompile Include="globals.h" />
-    <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="Enemy.cpp">
+      <Filter>PlayScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Player.cpp">
+      <Filter>PlayScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage.cpp">
+      <Filter>PlayScene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Screen.h" />
@@ -117,9 +123,15 @@
       <Filter>Library</Filter>
     </ClInclude>
     <ClInclude Include="Source\Input.h" />
-    <ClInclude Include="Stage.h" />
-    <ClInclude Include="Player.h" />
-    <ClInclude Include="Enemy.h" />
+    <ClInclude Include="Enemy.h">
+      <Filter>PlayScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.h">
+      <Filter>PlayScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage.h">
+      <Filter>PlayScene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Library">
