@@ -1,6 +1,7 @@
 #include "Enemy.h"
 #include "Stage.h"
 #include "ImGui/imgui.h"
+#include "Player.h"
 
 namespace {
 	const Point MDir[4] = { {0,-1},{0,1},{-1,0},{1,0} };
@@ -102,6 +103,23 @@ void Enemy::LeftHandMove()
 	{
 		dir = myRight[dir];
 	}
+}
+
+void Enemy::BFS()
+{
+	Player* player = FindGameObject<Player>();
+	Point TargetGridPos = { player->GetPositionPoint().x / STAGE_WIDTH,player->GetPositionPoint().y / STAGE_HEIGHT };	//グリッド座標
+	int step = 0;
+	Stage* stage = FindGameObject<Stage>();
+	stage->SetStageWeight(pos_.x / STAGE_WIDTH, pos_.y / STAGE_HEIGHT, 0);
+	//while (true)
+	//{
+	//	for (int i = 0; i < STAGE_HEIGHT; i++) {
+	//		for (int j = 0; j < STAGE_WIDTH; j++) {
+
+	//		}
+	//	}
+	//}
 }
 
 Enemy::Enemy()

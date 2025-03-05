@@ -28,6 +28,8 @@ class Enemy :
     void RandomMove();      //ランダム移動
     void RightHandMove();   //右手法
     void LeftHandMove();    //左手法
+
+    void BFS();
 public:
     Enemy();
     ~Enemy();

@@ -73,7 +73,7 @@ namespace {
 		{
 			for (int i = 0; i < w; i++)
 			{
-				_stage[j][i].weight = 1.0;
+				_stage[j][i].weight = -1.0;
 				if (i == 0 || j == 0 || i == w - 1 || j == h - 1)
 					_stage[j][i].obj = STAGE_OBJ::WALL;
 				continue;
@@ -91,24 +91,7 @@ Stage::Stage()
 	stageData = vector(STAGE_HEIGHT, vector<StageObj>(STAGE_WIDTH, { STAGE_OBJ::EMPTY, 1.0f }));
 
 	MakeMazeDigDug(STAGE_WIDTH, STAGE_HEIGHT, stageData);
-	//for (int y = 0; y < STAGE_HEIGHT; y++)
-	//{
-	//	for (int x = 0; x < STAGE_WIDTH; x++)
-	//	{
-	//		if (y == 0 || y == STAGE_HEIGHT - 1 || x == 0 || x == STAGE_WIDTH - 1)
-	//		{
-	//			stageData[y][x] = STAGE_OBJ::WALL;
-	//		}
-	//		else
-	//		{
-	//			if (x % 2 == 0 && y % 2 == 0)
-	//				stageData[y][x] = STAGE_OBJ::WALL;
-	//			else
-	//				stageData[y][x] = STAGE_OBJ::EMPTY;
-	//		}
 
-	//	}
-	//}
 	setStageRects();
 }
 
@@ -130,9 +113,11 @@ void Stage::Draw()
 			{
 			case STAGE_OBJ::EMPTY:
 				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(102, 205, 170), TRUE);
+				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(0, 0, 0), false);
 				break;
 			case STAGE_OBJ::WALL:
 				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(119, 136, 153), TRUE);
+				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(0, 0, 0), false);
 				break;
 			case STAGE_OBJ::GOAL:
 
@@ -140,6 +125,7 @@ void Stage::Draw()
 			default:
 				break;
 			}
+			DrawString(x * CHA_WIDTH+10, y * CHA_HEIGHT+10, std::to_string((int)stageData[y][x].weight).c_str(), GetColor(255, 255, 255), TRUE);
 		}
 	}
 }
