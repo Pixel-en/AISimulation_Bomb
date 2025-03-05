@@ -111,13 +111,13 @@ Enemy::Enemy()
 	while (true)
 	{
 		POINT pos = { GetRand(STAGE_WIDTH - 1),GetRand(STAGE_HEIGHT - 1) };
-		if (stage->GetStageData(pos.x, pos.y) == STAGE_OBJ::EMPTY) {
+		if (stage->GetStageData(pos.x, pos.y).obj == STAGE_OBJ::EMPTY) {
 			pos_ = { pos.x * CHA_WIDTH,pos.y * CHA_HEIGHT };
 			break;
 		}
 	}
 	ChengeTimer_ = CHENGETIME;
-	algonum_ = 0;
+	algonum_ = 1;
 }
 
 Enemy::~Enemy()

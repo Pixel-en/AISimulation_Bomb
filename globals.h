@@ -19,11 +19,17 @@
 	};
 
 
-	enum class STAGE_OBJ {
+	enum STAGE_OBJ {
 		EMPTY,
 		WALL,
 		GOAL,
 		MAX_OBJECT
+	};
+
+	struct StageObj
+	{
+		STAGE_OBJ obj;
+		float weight;
 	};
 
 	const int CHA_WIDTH = 32;
