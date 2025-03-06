@@ -30,6 +30,7 @@
 	{
 		STAGE_OBJ obj;
 		float weight;
+		int num;
 	};
 
 	const int CHA_WIDTH = 32;

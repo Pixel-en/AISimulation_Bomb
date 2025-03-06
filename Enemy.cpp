@@ -113,20 +113,20 @@ void Enemy::BFS()
 	Player* player = FindGameObject<Player>();
 	Point TargetGridPos = { player->GetPositionPoint().x / CHA_WIDTH,player->GetPositionPoint().y / CHA_HEIGHT };	//グリッド座標
 	Stage* stage = FindGameObject<Stage>();
-	stage->WeightReset();
+	stage->GridNumReset();
 	int step = 0;
-	stage->SetStageWeight(pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT, step);
+	stage->SetStageNum(pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT, step);
 	while (true)
 	{
 		bool Search = false;
 		for (int i = 1; i < STAGE_HEIGHT - 1; i++) {
 			for (int j = 1; j < STAGE_WIDTH - 1; j++) {
 
-				if (stage->GetStageData(j, i).weight == step) {
+				if (stage->GetStageData(j, i).num == step) {
 					for (int k = 0; k < 4; k++) {
 						if (stage->GetStageData(j + MDir[k].x, i + MDir[k].y).obj != STAGE_OBJ::WALL) {
-							if (stage->GetStageData(j + MDir[k].x, i + MDir[k].y).weight == -1)
-								stage->SetStageWeight(j + MDir[k].x, i + MDir[k].y, step + 1);
+							if (stage->GetStageData(j + MDir[k].x, i + MDir[k].y).num == -1)
+								stage->SetStageNum(j + MDir[k].x, i + MDir[k].y, step + 1);
 							Search = true;
 						}
 					}
@@ -139,7 +139,7 @@ void Enemy::BFS()
 			break;
 		}
 	}
-	int weight = stage->GetStageData(TargetGridPos.x, TargetGridPos.y).weight;
+	int num = stage->GetStageData(TargetGridPos.x, TargetGridPos.y).num;
 
 	struct Info
 	{
@@ -153,11 +153,11 @@ void Enemy::BFS()
 
 	DIR SearchDir[4] = { DOWN,UP,RIGHT,LEFT };
 	
-	for (int i = weight - 1; i > 0; i--) {
+	for (int i = num - 1; i > 0; i--) {
 
 		for (int j = 0; j < 4; j++) {
 			Point BWpos = { root_.back().Nextpos.x + MDir[j].x,root_.back().Nextpos.y + MDir[j].y };
-			if (stage->GetStageData(BWpos.x, BWpos.y).weight == i) {
+			if (stage->GetStageData(BWpos.x, BWpos.y).num == i) {
 				root_.push({ BWpos,(DIR)SearchDir[j] });
 				break;
 			}
@@ -166,6 +166,10 @@ void Enemy::BFS()
 	}
 
 	dir = root_.back().dir;
+}
+
+void Enemy::Dijkstra()
+{
 }
 
 Enemy::Enemy()

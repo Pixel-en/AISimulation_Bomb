@@ -28,8 +28,7 @@ public:
 	vector<Rect> GetStageRects() { return stageRects; }
 	vector<vector<StageObj>>& GetStageGrid() { return stageData; }
 	void setStageRects();
-	void SetStageWeight(int x, int y, int _weight) { stageData[y][x].weight = _weight; }
-
-	void WeightReset();
+	void SetStageNum(int x, int y, int _num) { stageData[y][x].num = _num; }
+	void GridNumReset();
 };
 

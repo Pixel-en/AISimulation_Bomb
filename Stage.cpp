@@ -55,6 +55,8 @@ namespace {
 					_stage[j][i].obj = STAGE_OBJ::EMPTY;
 				else
 					_stage[j][i].obj = STAGE_OBJ::WALL;
+				_stage[j][i].weight = 0.0;
+				_stage[j][i].num = -1;
 			}
 		}
 	}
@@ -76,10 +78,35 @@ namespace {
 		{
 			for (int i = 0; i < w; i++)
 			{
-				_stage[j][i].weight = -1.0;
 				if (i == 0 || j == 0 || i == w - 1 || j == h - 1)
 					_stage[j][i].obj = STAGE_OBJ::WALL;
 				continue;
+			}
+		}
+	}
+
+	void PillarMaze(int w, int h, vector<vector<StageObj>>& _stage)
+	{
+		AllWall(w, h, _stage);
+		AllWall(w, h, _stage);
+		for (int y = 0; y < h; y++)
+		{
+			for (int x = 0; x < w; x++)
+			{
+				if (y == 0 || y == h - 1 || x == 0 || x == w - 1)
+				{
+					_stage[y][x].obj = STAGE_OBJ::WALL;
+				}
+				else
+				{
+					if (x % 2 == 0 && y % 2 == 0)
+						_stage[y][x].obj = STAGE_OBJ::WALL;
+					else {
+						_stage[y][x].obj = STAGE_OBJ::EMPTY;
+						_stage[y][x].weight = rand() % 5;
+					}
+				}
+
 			}
 		}
 	}
@@ -93,7 +120,9 @@ Stage::Stage()
 {
 	stageData = vector(STAGE_HEIGHT, vector<StageObj>(STAGE_WIDTH, { STAGE_OBJ::EMPTY, 1.0f }));
 
-	MakeMazeDigDug(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+	//MakeMazeDigDug(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+
+	PillarMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
 
 	setStageRects();
 }
@@ -104,6 +133,15 @@ Stage::~Stage()
 
 void Stage::Update()
 {
+	ImGui::Begin("StageConfig");
+	if (ImGui::Button("Pillar")) {
+		PillarMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+	}
+	if (ImGui::Button("DigDug")) {
+		MakeMazeDigDug(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+	}
+
+	ImGui::End();
 }
 
 void Stage::Draw()
@@ -117,7 +155,7 @@ void Stage::Draw()
 			switch (stageData[y][x].obj)
 			{
 			case STAGE_OBJ::EMPTY:
-				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(102, 205, 170), TRUE);
+				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(stageData[y][x].weight*60, 205, 170), TRUE);
 				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(0, 0, 0), false);
 				break;
 			case STAGE_OBJ::WALL:
@@ -130,7 +168,8 @@ void Stage::Draw()
 			default:
 				break;
 			}
-			DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 10, std::to_string((int)stageData[y][x].weight).c_str(), GetColor(255, 255, 255), TRUE);
+			DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT+2, std::to_string((int)stageData[y][x].num).c_str(), GetColor(255, 255, 255), TRUE);
+			DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string((int)stageData[y][x].weight).c_str(), GetColor(255, 0, 255), TRUE);
 		}
 	}
 
@@ -151,13 +190,13 @@ void Stage::setStageRects()
 
 }
 
-void Stage::WeightReset()
+void Stage::GridNumReset()
 {
 	for (int y = 0; y < STAGE_HEIGHT; y++)
 	{
 		for (int x = 0; x < STAGE_WIDTH; x++)
 		{
-			stageData[y][x].weight = -1;
+			stageData[y][x].num = -1;
 		}
 	}
 }

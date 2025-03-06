@@ -30,6 +30,7 @@ class Enemy :
     void LeftHandMove();    //ç∂éËñ@
 
     void BFS();
+    void Dijkstra();
 public:
     Enemy();
     ~Enemy();
