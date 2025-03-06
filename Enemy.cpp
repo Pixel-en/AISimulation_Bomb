@@ -2,6 +2,7 @@
 #include "Stage.h"
 #include "ImGui/imgui.h"
 #include "Player.h"
+#include <queue>
 
 namespace {
 	const Point MDir[4] = { {0,-1},{0,1},{-1,0},{1,0} };
@@ -11,20 +12,21 @@ namespace {
 void Enemy::MoveAlgo()
 {
 
-	switch (algonum_)
-	{
-	case 0:
-		RandomMove();
-		break;
-	case 1:
-		RightHandMove();
-		break;
-	case 2:
-		LeftHandMove();
-		break;
-	default:
-		break;
-	}
+	//switch (algonum_)
+	//{
+	//case 0:
+	//	RandomMove();
+	//	break;
+	//case 1:
+	//	RightHandMove();
+	//	break;
+	//case 2:
+	//	LeftHandMove();
+	//	break;
+	//default:
+	//	break;
+	//}
+	BFS();
 }
 
 void Enemy::RandomMove()
@@ -73,7 +75,7 @@ void Enemy::LeftHandMove()
 {	//向いている方向から左右を取得
 	DIR myRight[4] = { RIGHT, LEFT, UP, DOWN };
 	DIR myLeft[4] = { LEFT, RIGHT, DOWN, UP };
-	
+
 	//前に移動したときと左に移動したときの当たり判定を作る
 	Rect FrontMoveRect = { pos_.x + MDir[dir].x,		  pos_.y + MDir[dir].y,			 CHA_WIDTH, CHA_HEIGHT };
 	Rect LeftMoveRect = { pos_.x + MDir[myLeft[dir]].x, pos_.y + MDir[myLeft[dir]].y, CHA_WIDTH, CHA_HEIGHT };
@@ -107,23 +109,67 @@ void Enemy::LeftHandMove()
 
 void Enemy::BFS()
 {
-	Player* player = FindGameObject<Player>();
-	Point TargetGridPos = { player->GetPositionPoint().x / STAGE_WIDTH,player->GetPositionPoint().y / STAGE_HEIGHT };	//グリッド座標
-	int step = 0;
-	Stage* stage = FindGameObject<Stage>();
-	stage->SetStageWeight(pos_.x / STAGE_WIDTH, pos_.y / STAGE_HEIGHT, 0);
-	//while (true)
-	//{
-	//	for (int i = 0; i < STAGE_HEIGHT; i++) {
-	//		for (int j = 0; j < STAGE_WIDTH; j++) {
 
-	//		}
-	//	}
-	//}
+	Player* player = FindGameObject<Player>();
+	Point TargetGridPos = { player->GetPositionPoint().x / CHA_WIDTH,player->GetPositionPoint().y / CHA_HEIGHT };	//グリッド座標
+	Stage* stage = FindGameObject<Stage>();
+	stage->WeightReset();
+	int step = 0;
+	stage->SetStageWeight(pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT, step);
+	while (true)
+	{
+		bool Search = false;
+		for (int i = 1; i < STAGE_HEIGHT - 1; i++) {
+			for (int j = 1; j < STAGE_WIDTH - 1; j++) {
+
+				if (stage->GetStageData(j, i).weight == step) {
+					for (int k = 0; k < 4; k++) {
+						if (stage->GetStageData(j + MDir[k].x, i + MDir[k].y).obj != STAGE_OBJ::WALL) {
+							if (stage->GetStageData(j + MDir[k].x, i + MDir[k].y).weight == -1)
+								stage->SetStageWeight(j + MDir[k].x, i + MDir[k].y, step + 1);
+							Search = true;
+						}
+					}
+				}
+			}
+		}
+		step++;
+
+		if (!Search) {
+			break;
+		}
+	}
+	int weight = stage->GetStageData(TargetGridPos.x, TargetGridPos.y).weight;
+
+	struct Info
+	{
+		Point Nextpos;
+		DIR dir;
+	};
+
+	std::queue<Info> root_;
+
+	root_.push({ TargetGridPos.x,TargetGridPos.y });
+
+	DIR SearchDir[4] = { DOWN,UP,RIGHT,LEFT };
+	
+	for (int i = weight - 1; i > 0; i--) {
+
+		for (int j = 0; j < 4; j++) {
+			Point BWpos = { root_.back().Nextpos.x + MDir[j].x,root_.back().Nextpos.y + MDir[j].y };
+			if (stage->GetStageData(BWpos.x, BWpos.y).weight == i) {
+				root_.push({ BWpos,(DIR)SearchDir[j] });
+				break;
+			}
+		}
+
+	}
+
+	dir = root_.back().dir;
 }
 
 Enemy::Enemy()
-	:pos_({ CHA_WIDTH,CHA_HEIGHT }), move_({ 0,-1 }), dir(DIR::UP)
+	:pos_({ CHA_WIDTH,CHA_HEIGHT }), move_({ -1,0 }), dir(DIR::LEFT)
 {
 	Stage* stage = FindGameObject<Stage>();
 	while (true)
@@ -134,8 +180,24 @@ Enemy::Enemy()
 			break;
 		}
 	}
+
+	for (int i = 0; i < 4; i++) {
+		bool open = true;
+		Rect rect = { pos_.x + MDir[i].x,pos_.y + MDir[i].y,CHA_WIDTH,CHA_HEIGHT };
+		for (auto& obj : stage->GetStageRects()) {
+			if (CheckHit(rect, obj)) {
+				open = false;
+			}
+		}
+		if (open) {
+			dir = (DIR)i;
+			break;
+		}
+	}
+	move_ = MDir[dir];
 	ChengeTimer_ = CHENGETIME;
 	algonum_ = 1;
+
 }
 
 Enemy::~Enemy()
@@ -146,11 +208,12 @@ void Enemy::Update()
 {
 	Point oldPos = pos_;    //移動前
 
-	pos_ = { pos_.x + move_.x,pos_.y + move_.y };
 
+	move_ = MDir[dir];
 	Stage* stage = FindGameObject<Stage>();
 	//移動後
 	Rect moveRect = { pos_.x,pos_.y,CHA_WIDTH,CHA_HEIGHT };
+	pos_ = { pos_.x + move_.x,pos_.y + move_.y };
 	//当たり判定
 	for (auto& obj : stage->GetStageRects()) {
 		if (CheckHit(moveRect, obj)) {
@@ -168,6 +231,7 @@ void Enemy::Update()
 			else {
 				pos_ = oldPos;
 			}
+			RightHandMove();
 			break;
 		}
 	}
@@ -185,12 +249,6 @@ void Enemy::Update()
 		pos_.y / CHA_HEIGHT % 2 == 1 && pos_.y % CHA_HEIGHT == 0) {
 		MoveAlgo();
 	}
-
-	move_ = MDir[dir];
-
-	ImGui::Begin("enemy");
-	ImGui::InputInt("num", &algonum_);
-	ImGui::End();
 }
 
 void Enemy::Draw()
