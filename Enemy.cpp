@@ -2,6 +2,7 @@
 #include "Stage.h"
 #include "ImGui/imgui.h"
 #include "Player.h"
+#include <map>
 #include <queue>
 
 namespace {
@@ -11,22 +12,44 @@ namespace {
 
 void Enemy::MoveAlgo()
 {
-
-	//switch (algonum_)
-	//{
-	//case 0:
-	//	RandomMove();
-	//	break;
-	//case 1:
-	//	RightHandMove();
-	//	break;
-	//case 2:
-	//	LeftHandMove();
-	//	break;
-	//default:
-	//	break;
-	//}
-	BFS();
+	switch (MoveSwitch_)
+	{
+	case Enemy::RANDOM:
+		RandomMove();
+		break;
+	case Enemy::RIGHTHAND:
+		RightHandMove();
+		break;
+	case Enemy::LEFTHAND:
+		LeftHandMove();
+		break;
+	case Enemy::MIX:
+		switch (algonum_)
+		{
+		case 0:
+			RandomMove();
+			break;
+		case 1:
+			RightHandMove();
+			break;
+		case 2:
+			LeftHandMove();
+			break;
+		default:
+			break;
+		}
+		break;
+	case Enemy::BFS:
+		BFSAlgo();
+		break;
+	case Enemy::DIJKSTRA:
+		Dijkstra();
+		break;
+	case Enemy::ASTAR:
+		break;
+	default:
+		break;
+	}
 }
 
 void Enemy::RandomMove()
@@ -107,7 +130,7 @@ void Enemy::LeftHandMove()
 	}
 }
 
-void Enemy::BFS()
+void Enemy::BFSAlgo()
 {
 
 	Player* player = FindGameObject<Player>();
@@ -141,12 +164,6 @@ void Enemy::BFS()
 	}
 	int num = stage->GetStageData(TargetGridPos.x, TargetGridPos.y).num;
 
-	struct Info
-	{
-		Point Nextpos;
-		DIR dir;
-	};
-
 	std::queue<Info> root_;
 
 	root_.push({ TargetGridPos.x,TargetGridPos.y });
@@ -170,6 +187,91 @@ void Enemy::BFS()
 
 void Enemy::Dijkstra()
 {
+
+
+	Player* player = FindGameObject<Player>();
+	Point sp = { pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT };
+	Point gp = { player->GetPositionPoint().x / CHA_WIDTH, player->GetPositionPoint().y / CHA_HEIGHT };
+
+	//if (PlayerOrigion_.x == gp.x && PlayerOrigion_.y == gp.y) {
+	//	if (sp.x == root_.back().Nextpos.x && sp.y == root_.back().Nextpos.y) {
+	//		root_.pop_back();
+	//	}
+	//	dir = root_.back().dir;
+	//	return;
+	//}
+	//PlayerOrigion_ = gp;
+
+	//root_ = std::deque<Info>();
+
+	using Mdat = std::pair<int, Point>;
+
+	for (int i = 0; i < STAGE_HEIGHT; i++) {
+		for (int j = 0; j < STAGE_WIDTH; j++) {
+			dist[i][j] = INT_MAX;
+			pre[i][j] = { -1,-1 };
+		}
+	}
+
+	dist[sp.y][sp.x] = 0;
+	//Mdat型、vector,昇順
+	std::priority_queue<Mdat, std::vector<Mdat>, std::greater<Mdat>> pq;
+	pq.push(Mdat(0, { sp.x, sp.y }));
+	vector<vector<StageObj>> stageData = FindGameObject<Stage>()->GetStageGrid();
+
+	//マップの情報を取得する
+	while (!pq.empty())
+	{
+		Mdat p = pq.top();
+		pq.pop();
+
+		int c = p.first;
+		Point v = p.second;
+
+		for (int i = 0; i < 4; i++)
+		{
+			//4方向アクセス
+			Point np = { v.x + (int)MDir[i].x, v.y + (int)MDir[i].y };
+
+			//ステージの外
+			if (np.x < 0 || np.y < 0 || np.x >= STAGE_WIDTH || np.y >= STAGE_HEIGHT)
+				continue;
+			//壁
+			if (stageData[np.y][np.x].obj == STAGE_OBJ::WALL)
+				continue;
+			
+			//より到達コストが高い場合
+			if (dist[np.y][np.x] <= stageData[np.y][np.x].weight + c)
+				continue;
+
+			//コスト更新
+			dist[np.y][np.x] = stageData[np.y][np.x].weight + c;
+			
+			//どこから来たのかの情報
+			pre[np.y][np.x] = Point({ v.x, v.y });
+
+			//情報を入力
+			pq.push(Mdat(dist[np.y][np.x], np));
+		}
+	}
+
+	//DIR SearchDir[4] = { DOWN,UP,RIGHT,LEFT };
+	//std::queue<Info> root_;
+	//root_.push({ gp });
+	//while (root_.back().Nextpos.x != sp.x || root_.back().Nextpos.y != sp.y) {
+
+	//	Info info = { pre[root_.back().Nextpos.y][root_.back().Nextpos.x] };
+	//	
+	//	for (int i = 0; i < 4; i++) {
+	//		if (info.Nextpos.y == root_.back().Nextpos.y+MDir[i].y && info.Nextpos.x == root_.back().Nextpos.x+MDir[i].x) {
+	//			info.dir = (DIR)SearchDir[i];
+	//			break;
+	//		}
+	//	}
+	//	root_.push(info);
+	//}
+
+	//dir = root_.back().dir;
 }
 
 Enemy::Enemy()
@@ -202,6 +304,11 @@ Enemy::Enemy()
 	ChengeTimer_ = CHENGETIME;
 	algonum_ = 1;
 
+	MoveSwitch_ = 0;
+
+	dist = vector(STAGE_HEIGHT, vector<int>(STAGE_WIDTH, INT_MAX));
+	pre = vector(STAGE_HEIGHT, vector<Point>(STAGE_WIDTH, { -1, -1 }));
+	PlayerOrigion_ = { -1, -1 };
 }
 
 Enemy::~Enemy()
@@ -240,6 +347,19 @@ void Enemy::Update()
 		}
 	}
 
+	ImGui::Begin("Config");
+	if (ImGui::TreeNode("EnemyMove")) {
+		ImGui::RadioButton("Random", &MoveSwitch_, MOVESWITCH::RANDOM);
+		ImGui::RadioButton("RightHand", &MoveSwitch_, MOVESWITCH::RIGHTHAND);
+		ImGui::RadioButton("LeftHand", &MoveSwitch_, MOVESWITCH::LEFTHAND);
+		ImGui::RadioButton("Mix", &MoveSwitch_, MOVESWITCH::MIX);
+		ImGui::RadioButton("BFS", &MoveSwitch_, MOVESWITCH::BFS);
+		ImGui::RadioButton("Dijkstra", &MoveSwitch_, MOVESWITCH::DIJKSTRA);
+		ImGui::RadioButton("A*", &MoveSwitch_, MOVESWITCH::ASTAR);
+		ImGui::TreePop();
+	}
+	ImGui::End();
+
 	if (ChengeTimer_ < 0) {
 		algonum_ = rand() % 3;
 		ChengeTimer_ = CHENGETIME;
@@ -253,6 +373,7 @@ void Enemy::Update()
 		pos_.y / CHA_HEIGHT % 2 == 1 && pos_.y % CHA_HEIGHT == 0) {
 		MoveAlgo();
 	}
+
 }
 
 void Enemy::Draw()
@@ -267,6 +388,20 @@ void Enemy::Draw()
 	};
 
 	DrawTriangle(tp[dir][0].x, tp[dir][0].y, tp[dir][1].x, tp[dir][1].y, tp[dir][2].x, tp[dir][2].y, GetColor(255, 255, 255), TRUE);
+
+	for (int y = 0; y < STAGE_HEIGHT; y++)
+	{
+		for (int x = 0; x < STAGE_WIDTH; x++)
+		{
+			if (pre[y][x].x != -1) {
+				//DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 2, std::to_string((int)dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
+				DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 2, std::to_string(pre[y][x].x).c_str(), GetColor(255, 255, 255), TRUE);
+
+			}
+			if(dist[y][x]<INT_MAX-100)
+			DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string(dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
+		}
+	}
 }
 
 bool Enemy::CheckHit(const Rect& me, const Rect& other)

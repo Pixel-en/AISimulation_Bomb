@@ -88,7 +88,6 @@ namespace {
 	void PillarMaze(int w, int h, vector<vector<StageObj>>& _stage)
 	{
 		AllWall(w, h, _stage);
-		AllWall(w, h, _stage);
 		for (int y = 0; y < h; y++)
 		{
 			for (int x = 0; x < w; x++)
@@ -111,6 +110,44 @@ namespace {
 		}
 	}
 
+	void DijkstraMaze(int w, int h, vector<vector<StageObj>>& _stage) {
+		AllWall(w, h, _stage);
+		int temp = w / 3;
+		for (int i = 0; i < h; i++) {
+			for (int j = 0; j < w; j++) {
+				if (i == 0 || i == h - 1 || j == 0 || j == w - 1)
+				{
+					_stage[i][j].obj = STAGE_OBJ::WALL;
+				}
+				else {
+					if (j == temp) {
+						if (i >= (h / 2 - h / 4)) {
+							_stage[i][j].obj = STAGE_OBJ::WALL;
+						}
+						else {
+							_stage[i][j].obj = STAGE_OBJ::EMPTY;
+							_stage[i][j].weight = rand() % 5;
+						}
+					}
+					else if (j == temp * 2) {
+						if (i <= (h / 2 + h / 4)) {
+							_stage[i][j].obj = STAGE_OBJ::WALL;
+						}
+						else {
+							_stage[i][j].obj = STAGE_OBJ::EMPTY;
+							_stage[i][j].weight = rand() % 5;
+						}
+					}
+					else {
+						_stage[i][j].obj = STAGE_OBJ::EMPTY;
+						_stage[i][j].weight = rand() % 5;
+					}
+				}
+			}
+		}
+
+	}
+
 }
 
 
@@ -118,12 +155,13 @@ namespace {
 
 Stage::Stage()
 {
-	stageData = vector(STAGE_HEIGHT, vector<StageObj>(STAGE_WIDTH, { STAGE_OBJ::EMPTY, 1.0f }));
+	stageData = vector(STAGE_HEIGHT, vector<StageObj>(STAGE_WIDTH, { STAGE_OBJ::EMPTY, 1.0f,1 }));
 
 	//MakeMazeDigDug(STAGE_WIDTH, STAGE_HEIGHT, stageData);
 
-	PillarMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+	//PillarMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
 
+	DijkstraMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
 	setStageRects();
 }
 
@@ -133,12 +171,21 @@ Stage::~Stage()
 
 void Stage::Update()
 {
-	ImGui::Begin("StageConfig");
-	if (ImGui::Button("Pillar")) {
-		PillarMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
-	}
-	if (ImGui::Button("DigDug")) {
-		MakeMazeDigDug(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+	ImGui::Begin("Config");
+	if (ImGui::TreeNode("Stage")) {
+		if (ImGui::Button("Pillar")) {
+			PillarMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+			setStageRects();
+		}
+		if (ImGui::Button("DigDug")) {
+			MakeMazeDigDug(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+			setStageRects();
+		}
+		if (ImGui::Button("Dijkstra")) {
+			DijkstraMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
+			setStageRects();
+		}
+		ImGui::TreePop();
 	}
 
 	ImGui::End();
@@ -155,11 +202,11 @@ void Stage::Draw()
 			switch (stageData[y][x].obj)
 			{
 			case STAGE_OBJ::EMPTY:
-				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(stageData[y][x].weight*60, 205, 170), TRUE);
+				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(stageData[y][x].weight * 60, 205, 170), TRUE);
 				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(0, 0, 0), false);
 				break;
 			case STAGE_OBJ::WALL:
-				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(119, 136, 153), TRUE);
+				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(69, 86, 103), TRUE);
 				DrawBox(x * CHA_WIDTH, y * CHA_HEIGHT, x * CHA_WIDTH + CHA_WIDTH, y * CHA_HEIGHT + CHA_HEIGHT, GetColor(0, 0, 0), false);
 				break;
 			case STAGE_OBJ::GOAL:
@@ -168,8 +215,8 @@ void Stage::Draw()
 			default:
 				break;
 			}
-			DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT+2, std::to_string((int)stageData[y][x].num).c_str(), GetColor(255, 255, 255), TRUE);
-			DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string((int)stageData[y][x].weight).c_str(), GetColor(255, 0, 255), TRUE);
+			//DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 2, std::to_string((int)stageData[y][x].num).c_str(), GetColor(255, 255, 255), TRUE);
+			//DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string((int)stageData[y][x].weight).c_str(), GetColor(255, 0, 255), TRUE);
 		}
 	}
 
@@ -177,6 +224,9 @@ void Stage::Draw()
 
 void Stage::setStageRects()
 {
+	stageRects.clear();
+
+
 	for (int y = 0; y < STAGE_HEIGHT; y++)
 	{
 		for (int x = 0; x < STAGE_WIDTH; x++)
