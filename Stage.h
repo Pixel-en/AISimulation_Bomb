@@ -16,6 +16,18 @@ constexpr int STAGE_HEIGHT = (Screen::HEIGHT / CHA_HEIGHT) % 2 ? (Screen::HEIGHT
 class Stage :
     public GameObject
 {
+public:
+	enum STAGETYPE
+	{
+		PILLAR,
+		DIGDUG,
+		DIJKSTRA,
+		MAX
+	};
+
+
+private:
+	STAGETYPE type_;
 
 	vector<vector<StageObj>> stageData;
 	vector<Rect> stageRects;
@@ -30,5 +42,6 @@ public:
 	void setStageRects();
 	void SetStageNum(int x, int y, int _num) { stageData[y][x].num = _num; }
 	void GridNumReset();
+	STAGETYPE GetStageType() { return type_; }
 };
 

@@ -6,7 +6,7 @@
 #include <queue>
 
 namespace {
-	const Point MDir[4] = { {0,-1},{0,1},{-1,0},{1,0} };
+	const Point MDir[5] = { {0,-1},{0,1},{-1,0},{1,0},{0,0 } };
 	const float CHENGETIME{ 10.0f };
 }
 
@@ -132,6 +132,7 @@ void Enemy::LeftHandMove()
 
 void Enemy::BFSAlgo()
 {
+	root_.clear();
 
 	Player* player = FindGameObject<Player>();
 	Point TargetGridPos = { player->GetPositionPoint().x / CHA_WIDTH,player->GetPositionPoint().y / CHA_HEIGHT };	//グリッド座標
@@ -164,18 +165,16 @@ void Enemy::BFSAlgo()
 	}
 	int num = stage->GetStageData(TargetGridPos.x, TargetGridPos.y).num;
 
-	std::queue<Info> root_;
-
-	root_.push({ TargetGridPos.x,TargetGridPos.y });
+	root_.push_back({ TargetGridPos.x,TargetGridPos.y });
 
 	DIR SearchDir[4] = { DOWN,UP,RIGHT,LEFT };
-	
+
 	for (int i = num - 1; i > 0; i--) {
 
 		for (int j = 0; j < 4; j++) {
 			Point BWpos = { root_.back().Nextpos.x + MDir[j].x,root_.back().Nextpos.y + MDir[j].y };
 			if (stage->GetStageData(BWpos.x, BWpos.y).num == i) {
-				root_.push({ BWpos,(DIR)SearchDir[j] });
+				root_.push_back({ BWpos,(DIR)SearchDir[j] });
 				break;
 			}
 		}
@@ -193,19 +192,23 @@ void Enemy::Dijkstra()
 	Point sp = { pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT };
 	Point gp = { player->GetPositionPoint().x / CHA_WIDTH, player->GetPositionPoint().y / CHA_HEIGHT };
 
-	//if (PlayerOrigion_.x == gp.x && PlayerOrigion_.y == gp.y) {
-	//	if (sp.x == root_.back().Nextpos.x && sp.y == root_.back().Nextpos.y) {
-	//		root_.pop_back();
-	//	}
-	//	dir = root_.back().dir;
-	//	return;
-	//}
-	//PlayerOrigion_ = gp;
+	if (gp.x == PlayerOrigion_.x && gp.y == PlayerOrigion_.y&&!root_.empty()) {
 
-	//root_ = std::deque<Info>();
+		if (sp.x == root_.back().Nextpos.x && sp.y == root_.back().Nextpos.y) {
+			//目的地に着いたら次の方向を出す
+			dir = root_.back().dir;
+			//次の目的地を出す
+			root_.pop_back();
+		}
+		
+		return;
+	}
 
 	using Mdat = std::pair<int, Point>;
 
+	PlayerOrigion_ = gp;
+
+	//マップ情報の初期化
 	for (int i = 0; i < STAGE_HEIGHT; i++) {
 		for (int j = 0; j < STAGE_WIDTH; j++) {
 			dist[i][j] = INT_MAX;
@@ -239,14 +242,14 @@ void Enemy::Dijkstra()
 			//壁
 			if (stageData[np.y][np.x].obj == STAGE_OBJ::WALL)
 				continue;
-			
+
 			//より到達コストが高い場合
 			if (dist[np.y][np.x] <= stageData[np.y][np.x].weight + c)
 				continue;
 
 			//コスト更新
 			dist[np.y][np.x] = stageData[np.y][np.x].weight + c;
-			
+
 			//どこから来たのかの情報
 			pre[np.y][np.x] = Point({ v.x, v.y });
 
@@ -255,23 +258,27 @@ void Enemy::Dijkstra()
 		}
 	}
 
-	//DIR SearchDir[4] = { DOWN,UP,RIGHT,LEFT };
-	//std::queue<Info> root_;
-	//root_.push({ gp });
-	//while (root_.back().Nextpos.x != sp.x || root_.back().Nextpos.y != sp.y) {
+	root_.clear();
 
-	//	Info info = { pre[root_.back().Nextpos.y][root_.back().Nextpos.x] };
-	//	
-	//	for (int i = 0; i < 4; i++) {
-	//		if (info.Nextpos.y == root_.back().Nextpos.y+MDir[i].y && info.Nextpos.x == root_.back().Nextpos.x+MDir[i].x) {
-	//			info.dir = (DIR)SearchDir[i];
-	//			break;
-	//		}
-	//	}
-	//	root_.push(info);
-	//}
+	root_.push_back({ gp ,DIR::NONE });
 
-	//dir = root_.back().dir;
+	while (root_.back().Nextpos.x != sp.x || root_.back().Nextpos.y != sp.y)
+	{
+		Info data = { pre[root_.back().Nextpos.y][root_.back().Nextpos.x],DIR::NONE };
+		for (int i = 0; i < 4; i++) {
+			Point mdata = { data.Nextpos.x + MDir[i].x,data.Nextpos.y + MDir[i].y };
+			//前の場所から移動した方向を見つける
+			if (mdata.x == root_.back().Nextpos.x && mdata.y == root_.back().Nextpos.y) {
+				data.dir = (DIR)i;
+				break;
+			}
+		}
+
+		root_.push_back(data);
+	}
+
+	dir = root_.back().dir;
+	root_.pop_back();
 }
 
 Enemy::Enemy()
@@ -309,6 +316,7 @@ Enemy::Enemy()
 	dist = vector(STAGE_HEIGHT, vector<int>(STAGE_WIDTH, INT_MAX));
 	pre = vector(STAGE_HEIGHT, vector<Point>(STAGE_WIDTH, { -1, -1 }));
 	PlayerOrigion_ = { -1, -1 };
+	root_.clear();
 }
 
 Enemy::~Enemy()
@@ -354,11 +362,11 @@ void Enemy::Update()
 		ImGui::RadioButton("LeftHand", &MoveSwitch_, MOVESWITCH::LEFTHAND);
 		ImGui::RadioButton("Mix", &MoveSwitch_, MOVESWITCH::MIX);
 		ImGui::RadioButton("BFS", &MoveSwitch_, MOVESWITCH::BFS);
-		ImGui::RadioButton("Dijkstra", &MoveSwitch_, MOVESWITCH::DIJKSTRA);
+		if (ImGui::RadioButton("Dijkstra", &MoveSwitch_, MOVESWITCH::DIJKSTRA)) root_.clear();
 		ImGui::RadioButton("A*", &MoveSwitch_, MOVESWITCH::ASTAR);
 		ImGui::TreePop();
 	}
-	ImGui::End();
+
 
 	if (ChengeTimer_ < 0) {
 		algonum_ = rand() % 3;
@@ -369,11 +377,24 @@ void Enemy::Update()
 	}
 
 	//4方向に移動できるとき
-	if (pos_.x / CHA_WIDTH % 2 == 1 && pos_.x % CHA_WIDTH == 0 &&
-		pos_.y / CHA_HEIGHT % 2 == 1 && pos_.y % CHA_HEIGHT == 0) {
-		MoveAlgo();
+	if (pos_.x % CHA_WIDTH == 0 && pos_.y % CHA_HEIGHT == 0) {
+		if (stage->GetStageType() == Stage::PILLAR) {
+			if (pos_.x / CHA_WIDTH % 2 == 1 && pos_.y / CHA_HEIGHT % 2 == 1) {
+				MoveAlgo();
+			}
+		}
+		else {
+			MoveAlgo();
+		}
 	}
-
+	Point sp = { pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT };
+	if (!root_.empty()) {
+		ImGui::InputInt("next.x", &root_.back().Nextpos.x);
+		ImGui::InputInt("next.y", &root_.back().Nextpos.y);
+		ImGui::InputInt("pos.x", &sp.x);
+		ImGui::InputInt("pos.y", &sp.y);
+	}
+	ImGui::End();
 }
 
 void Enemy::Draw()
@@ -398,8 +419,8 @@ void Enemy::Draw()
 				DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 2, std::to_string(pre[y][x].x).c_str(), GetColor(255, 255, 255), TRUE);
 
 			}
-			if(dist[y][x]<INT_MAX-100)
-			DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string(dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
+			if (dist[y][x] < INT_MAX - 100)
+				DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string(dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
 		}
 	}
 }

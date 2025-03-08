@@ -19,6 +19,7 @@ class Enemy :
         DOWN,
         LEFT,
         RIGHT,
+        NONE
     };
     DIR dir;
 
@@ -58,6 +59,7 @@ class Enemy :
 
     vector<vector<int>> dist;
     vector<vector<Point>> pre;
+    std::deque<Info> root_;
 public:
     Enemy();
     ~Enemy();

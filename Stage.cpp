@@ -163,6 +163,7 @@ Stage::Stage()
 
 	DijkstraMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
 	setStageRects();
+	type_ = DIJKSTRA;
 }
 
 Stage::~Stage()
@@ -176,14 +177,17 @@ void Stage::Update()
 		if (ImGui::Button("Pillar")) {
 			PillarMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
 			setStageRects();
+			type_ = PILLAR;
 		}
 		if (ImGui::Button("DigDug")) {
 			MakeMazeDigDug(STAGE_WIDTH, STAGE_HEIGHT, stageData);
 			setStageRects();
+			type_ = DIGDUG;
 		}
 		if (ImGui::Button("Dijkstra")) {
 			DijkstraMaze(STAGE_WIDTH, STAGE_HEIGHT, stageData);
 			setStageRects();
+			type_ = DIJKSTRA;
 		}
 		ImGui::TreePop();
 	}
