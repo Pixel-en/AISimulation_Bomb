@@ -46,6 +46,7 @@ void Enemy::MoveAlgo()
 		Dijkstra();
 		break;
 	case Enemy::ASTAR:
+		AStar();
 		break;
 	default:
 		break;
@@ -60,8 +61,8 @@ void Enemy::RandomMove()
 void Enemy::RightHandMove()
 {
 	//向いている方向から左右を取得
-	DIR myRight[4] = { RIGHT, LEFT, UP, DOWN };
-	DIR myLeft[4] = { LEFT, RIGHT, DOWN, UP };
+	DIR myRight[5] = { RIGHT, LEFT, UP, DOWN,NONE };
+	DIR myLeft[5] = { LEFT, RIGHT, DOWN, UP,NONE };
 	//前に移動したときと右に移動したときの当たり判定を作る
 	Rect FrontMoveRect = { pos_.x + MDir[dir].x,		  pos_.y + MDir[dir].y,			 CHA_WIDTH, CHA_HEIGHT };
 	Rect RightMoveRect = { pos_.x + MDir[myRight[dir]].x, pos_.y + MDir[myRight[dir]].y, CHA_WIDTH, CHA_HEIGHT };
@@ -96,8 +97,8 @@ void Enemy::RightHandMove()
 void Enemy::LeftHandMove()
 
 {	//向いている方向から左右を取得
-	DIR myRight[4] = { RIGHT, LEFT, UP, DOWN };
-	DIR myLeft[4] = { LEFT, RIGHT, DOWN, UP };
+	DIR myRight[5] = { RIGHT, LEFT, UP, DOWN,NONE };
+	DIR myLeft[5] = { LEFT, RIGHT, DOWN, UP,NONE };
 
 	//前に移動したときと左に移動したときの当たり判定を作る
 	Rect FrontMoveRect = { pos_.x + MDir[dir].x,		  pos_.y + MDir[dir].y,			 CHA_WIDTH, CHA_HEIGHT };
@@ -132,7 +133,6 @@ void Enemy::LeftHandMove()
 
 void Enemy::BFSAlgo()
 {
-	root_.clear();
 
 	Player* player = FindGameObject<Player>();
 	Point TargetGridPos = { player->GetPositionPoint().x / CHA_WIDTH,player->GetPositionPoint().y / CHA_HEIGHT };	//グリッド座標
@@ -165,42 +165,43 @@ void Enemy::BFSAlgo()
 	}
 	int num = stage->GetStageData(TargetGridPos.x, TargetGridPos.y).num;
 
-	root_.push_back({ TargetGridPos.x,TargetGridPos.y });
+
+	route_.clear();
+
+	route_.push_back({ TargetGridPos.x,TargetGridPos.y ,DIR::NONE});
 
 	DIR SearchDir[4] = { DOWN,UP,RIGHT,LEFT };
 
-	for (int i = num - 1; i > 0; i--) {
+	for (int i = num - 1; i >= 0; i--) {
 
 		for (int j = 0; j < 4; j++) {
-			Point BWpos = { root_.back().Nextpos.x + MDir[j].x,root_.back().Nextpos.y + MDir[j].y };
+			Point BWpos = { route_.back().Nextpos.x + MDir[j].x,route_.back().Nextpos.y + MDir[j].y };
 			if (stage->GetStageData(BWpos.x, BWpos.y).num == i) {
-				root_.push_back({ BWpos,(DIR)SearchDir[j] });
+				route_.push_back({ BWpos,(DIR)SearchDir[j] });
 				break;
 			}
 		}
 
 	}
 
-	dir = root_.back().dir;
+	dir = route_.back().dir;
 }
 
 void Enemy::Dijkstra()
 {
-
-
 	Player* player = FindGameObject<Player>();
 	Point sp = { pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT };
 	Point gp = { player->GetPositionPoint().x / CHA_WIDTH, player->GetPositionPoint().y / CHA_HEIGHT };
 
-	if (gp.x == PlayerOrigion_.x && gp.y == PlayerOrigion_.y&&!root_.empty()) {
+	if (gp == PlayerOrigion_&& !route_.empty()) {
 
-		if (sp.x == root_.back().Nextpos.x && sp.y == root_.back().Nextpos.y) {
+		if (sp == route_.back().Nextpos) {
 			//目的地に着いたら次の方向を出す
-			dir = root_.back().dir;
+			dir = route_.back().dir;
 			//次の目的地を出す
-			root_.pop_back();
+			route_.pop_back();
 		}
-		
+
 		return;
 	}
 
@@ -258,28 +259,134 @@ void Enemy::Dijkstra()
 		}
 	}
 
-	root_.clear();
+	route_.clear();
 
-	root_.push_back({ gp ,DIR::NONE });
+	route_.push_back({ gp ,DIR::NONE });
 
-	while (root_.back().Nextpos.x != sp.x || root_.back().Nextpos.y != sp.y)
+	while (route_.back().Nextpos.x != sp.x || route_.back().Nextpos.y != sp.y)
 	{
-		Info data = { pre[root_.back().Nextpos.y][root_.back().Nextpos.x],DIR::NONE };
+		Info data = { pre[route_.back().Nextpos.y][route_.back().Nextpos.x],DIR::NONE };
 		for (int i = 0; i < 4; i++) {
 			Point mdata = { data.Nextpos.x + MDir[i].x,data.Nextpos.y + MDir[i].y };
 			//前の場所から移動した方向を見つける
-			if (mdata.x == root_.back().Nextpos.x && mdata.y == root_.back().Nextpos.y) {
+			if (mdata.x == route_.back().Nextpos.x && mdata.y == route_.back().Nextpos.y) {
 				data.dir = (DIR)i;
 				break;
 			}
 		}
 
-		root_.push_back(data);
+		route_.push_back(data);
 	}
 
-	dir = root_.back().dir;
-	root_.pop_back();
+	dir = route_.back().dir;
+	route_.pop_back();
 }
+
+void Enemy::AStar()
+{
+
+	Player* player = FindGameObject<Player>();
+	Point sp = { pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT };
+	Point gp = { player->GetPositionPoint().x / CHA_WIDTH, player->GetPositionPoint().y / CHA_HEIGHT };
+
+	if (gp==PlayerOrigion_ && !route_.empty()) {
+
+		if (sp == route_.back().Nextpos) {
+			//目的地に着いたら次の方向を出す
+			dir = route_.back().dir;
+			//次の目的地を出す
+			route_.pop_back();
+		}
+
+		return;
+	}
+
+	using Mdat = std::pair<int, Point>;
+
+	PlayerOrigion_ = gp;
+
+	//マップ情報の初期化
+	for (int i = 0; i < STAGE_HEIGHT; i++) {
+		for (int j = 0; j < STAGE_WIDTH; j++) {
+			dist[i][j] = INT_MAX;
+			pre[i][j] = { -1,-1 };
+		}
+	}
+
+	dist[sp.y][sp.x] = 0;
+	//Mdat型、vector,昇順
+	std::priority_queue<Mdat, std::vector<Mdat>, std::greater<Mdat>> pq;
+	pq.push(Mdat(0, { sp.x, sp.y }));
+	vector<vector<StageObj>> stageData = FindGameObject<Stage>()->GetStageGrid();
+
+	//マップの情報を取得する
+	while (!pq.empty())
+	{
+		Mdat p = pq.top();
+		pq.pop();
+
+		int c = p.first;
+		Point v = p.second;
+
+		for (int i = 0; i < 4; i++)
+		{
+			//4方向アクセス
+			Point np = { v.x + (int)MDir[i].x, v.y + (int)MDir[i].y };
+
+			//ステージの外
+			if (np.x < 0 || np.y < 0 || np.x >= STAGE_WIDTH || np.y >= STAGE_HEIGHT)
+				continue;
+			//壁
+			if (stageData[np.y][np.x].obj == STAGE_OBJ::WALL)
+				continue;
+
+			int gdist = abs(np.x - gp.x) + abs(np.y - gp.y);
+
+			//より到達コストが高い場合
+			if (dist[np.y][np.x] <= stageData[np.y][np.x].weight + c+gdist)
+				continue;
+
+			//コスト更新
+			dist[np.y][np.x] = stageData[np.y][np.x].weight + c + gdist;
+
+			//どこから来たのかの情報
+			pre[np.y][np.x] = Point({ v.x, v.y });
+
+			//移動先がゴールなら
+			if (np == gp) {
+				pq = std::priority_queue<Mdat, std::vector<Mdat>, std::greater<Mdat>>();
+				break;
+			}
+			//移動先がゴールでないなら
+			//情報を入力
+			pq.push(Mdat(dist[np.y][np.x], np));
+		}
+	}
+
+	route_.clear();
+
+	route_.push_back({ gp ,DIR::NONE });
+
+	while (route_.back().Nextpos.x != sp.x || route_.back().Nextpos.y != sp.y)
+	{
+		Info data = { pre[route_.back().Nextpos.y][route_.back().Nextpos.x],DIR::NONE };
+		for (int i = 0; i < 4; i++) {
+			Point mdata = { data.Nextpos.x + MDir[i].x,data.Nextpos.y + MDir[i].y };
+			//前の場所から移動した方向を見つける
+			if (mdata.x == route_.back().Nextpos.x && mdata.y == route_.back().Nextpos.y) {
+				data.dir = (DIR)i;
+				break;
+			}
+		}
+
+		route_.push_back(data);
+	}
+
+	dir = route_.back().dir;
+	route_.pop_back();
+}
+
+
 
 Enemy::Enemy()
 	:pos_({ CHA_WIDTH,CHA_HEIGHT }), move_({ -1,0 }), dir(DIR::LEFT)
@@ -312,11 +419,13 @@ Enemy::Enemy()
 	algonum_ = 1;
 
 	MoveSwitch_ = 0;
+	isDisplayRoute_ = false;
+	isDisplayDist_ = false;
 
 	dist = vector(STAGE_HEIGHT, vector<int>(STAGE_WIDTH, INT_MAX));
 	pre = vector(STAGE_HEIGHT, vector<Point>(STAGE_WIDTH, { -1, -1 }));
 	PlayerOrigion_ = { -1, -1 };
-	root_.clear();
+	route_.clear();
 }
 
 Enemy::~Enemy()
@@ -354,20 +463,9 @@ void Enemy::Update()
 			break;
 		}
 	}
+	ImGuiOperation();
 
-	ImGui::Begin("Config");
-	if (ImGui::TreeNode("EnemyMove")) {
-		ImGui::RadioButton("Random", &MoveSwitch_, MOVESWITCH::RANDOM);
-		ImGui::RadioButton("RightHand", &MoveSwitch_, MOVESWITCH::RIGHTHAND);
-		ImGui::RadioButton("LeftHand", &MoveSwitch_, MOVESWITCH::LEFTHAND);
-		ImGui::RadioButton("Mix", &MoveSwitch_, MOVESWITCH::MIX);
-		ImGui::RadioButton("BFS", &MoveSwitch_, MOVESWITCH::BFS);
-		if (ImGui::RadioButton("Dijkstra", &MoveSwitch_, MOVESWITCH::DIJKSTRA)) root_.clear();
-		ImGui::RadioButton("A*", &MoveSwitch_, MOVESWITCH::ASTAR);
-		ImGui::TreePop();
-	}
-
-
+	//ミックスで使う
 	if (ChengeTimer_ < 0) {
 		algonum_ = rand() % 3;
 		ChengeTimer_ = CHENGETIME;
@@ -387,41 +485,49 @@ void Enemy::Update()
 			MoveAlgo();
 		}
 	}
-	Point sp = { pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT };
-	if (!root_.empty()) {
-		ImGui::InputInt("next.x", &root_.back().Nextpos.x);
-		ImGui::InputInt("next.y", &root_.back().Nextpos.y);
-		ImGui::InputInt("pos.x", &sp.x);
-		ImGui::InputInt("pos.y", &sp.y);
-	}
-	ImGui::End();
+
 }
 
 void Enemy::Draw()
 {
-	DrawBox(pos_.x, pos_.y, pos_.x + CHA_WIDTH, pos_.y + CHA_HEIGHT, GetColor(10, 200, 10), TRUE);
-
-	Point tp[4][3] = {
-	{{pos_.x + CHA_WIDTH / 2, pos_.y}, {pos_.x, pos_.y + CHA_HEIGHT / 2}, {pos_.x + CHA_WIDTH, pos_.y + CHA_HEIGHT / 2}},
-	{{pos_.x + CHA_WIDTH / 2, pos_.y + CHA_HEIGHT}, {pos_.x, pos_.y + CHA_HEIGHT / 2}, {pos_.x + CHA_WIDTH, pos_.y + CHA_HEIGHT / 2}},
-	{{pos_.x            , pos_.y + CHA_HEIGHT / 2}, {pos_.x + CHA_WIDTH / 2, pos_.y}, {pos_.x + CHA_WIDTH / 2, pos_.y + CHA_HEIGHT}},
-	{{pos_.x + CHA_WIDTH, pos_.y + CHA_HEIGHT / 2}, {pos_.x + CHA_WIDTH / 2, pos_.y}, {pos_.x + CHA_WIDTH / 2, pos_.y + CHA_HEIGHT}}
-	};
-
-	DrawTriangle(tp[dir][0].x, tp[dir][0].y, tp[dir][1].x, tp[dir][1].y, tp[dir][2].x, tp[dir][2].y, GetColor(255, 255, 255), TRUE);
-
-	for (int y = 0; y < STAGE_HEIGHT; y++)
-	{
-		for (int x = 0; x < STAGE_WIDTH; x++)
-		{
-			if (pre[y][x].x != -1) {
-				//DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 2, std::to_string((int)dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
-				DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 2, std::to_string(pre[y][x].x).c_str(), GetColor(255, 255, 255), TRUE);
-
+	{	//経路表示
+		if (isDisplayRoute_) {
+			for (int i = 0; i < route_.size(); i++) {
+				Point rp[4][3] = {
+					{{route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH / 2, route_[i].Nextpos.y * CHA_HEIGHT}, {route_[i].Nextpos.x * CHA_WIDTH, route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT / 2}, {route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH, route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT / 2}},
+					{{route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH / 2, route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT}, {route_[i].Nextpos.x * CHA_WIDTH, route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT / 2}, {route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH, route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT / 2}},
+					{{route_[i].Nextpos.x * CHA_WIDTH            , route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT / 2}, {route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH / 2, route_[i].Nextpos.y * CHA_HEIGHT}, {route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH / 2, route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT}},
+					{{route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH, route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT / 2}, {route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH / 2, route_[i].Nextpos.y * CHA_HEIGHT}, {route_[i].Nextpos.x * CHA_WIDTH + CHA_WIDTH / 2, route_[i].Nextpos.y * CHA_HEIGHT + CHA_HEIGHT}}
+				};
+				DrawTriangle(rp[route_[i].dir][0].x, rp[route_[i].dir][0].y, rp[route_[i].dir][1].x, rp[route_[i].dir][1].y, rp[route_[i].dir][2].x, rp[route_[i].dir][2].y, GetColor(255, 255, 255), TRUE);
 			}
-			if (dist[y][x] < INT_MAX - 100)
-				DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string(dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
 		}
+	}
+	{	//コスト表示
+		if (isDisplayDist_) {
+			for (int y = 0; y < STAGE_HEIGHT; y++)
+			{
+				for (int x = 0; x < STAGE_WIDTH; x++)
+				{
+					if (dist[y][x] < INT_MAX)
+						DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string(dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
+				}
+			}
+		}
+	}
+
+
+	{	//敵表示
+		DrawBox(pos_.x, pos_.y, pos_.x + CHA_WIDTH, pos_.y + CHA_HEIGHT, GetColor(10, 200, 10), TRUE);
+
+		Point tp[4][3] = {
+		{{pos_.x + CHA_WIDTH / 2, pos_.y}, {pos_.x, pos_.y + CHA_HEIGHT / 2}, {pos_.x + CHA_WIDTH, pos_.y + CHA_HEIGHT / 2}},
+		{{pos_.x + CHA_WIDTH / 2, pos_.y + CHA_HEIGHT}, {pos_.x, pos_.y + CHA_HEIGHT / 2}, {pos_.x + CHA_WIDTH, pos_.y + CHA_HEIGHT / 2}},
+		{{pos_.x            , pos_.y + CHA_HEIGHT / 2}, {pos_.x + CHA_WIDTH / 2, pos_.y}, {pos_.x + CHA_WIDTH / 2, pos_.y + CHA_HEIGHT}},
+		{{pos_.x + CHA_WIDTH, pos_.y + CHA_HEIGHT / 2}, {pos_.x + CHA_WIDTH / 2, pos_.y}, {pos_.x + CHA_WIDTH / 2, pos_.y + CHA_HEIGHT}}
+		};
+
+		DrawTriangle(tp[dir][0].x, tp[dir][0].y, tp[dir][1].x, tp[dir][1].y, tp[dir][2].x, tp[dir][2].y, GetColor(255, 255, 255), TRUE);
 	}
 }
 
@@ -435,4 +541,37 @@ bool Enemy::CheckHit(const Rect& me, const Rect& other)
 		return true;
 	}
 	return false;
+}
+
+void Enemy::ImGuiOperation()
+{
+	ImGui::Begin("Config");
+	if (ImGui::TreeNode("EnemyMove")) {
+		ImGui::RadioButton("Random", &MoveSwitch_, MOVESWITCH::RANDOM);
+		ImGui::RadioButton("RightHand", &MoveSwitch_, MOVESWITCH::RIGHTHAND);
+		ImGui::RadioButton("LeftHand", &MoveSwitch_, MOVESWITCH::LEFTHAND);
+		ImGui::RadioButton("Mix", &MoveSwitch_, MOVESWITCH::MIX);
+		ImGui::RadioButton("BFS", &MoveSwitch_, MOVESWITCH::BFS);
+		if (ImGui::RadioButton("Dijkstra", &MoveSwitch_, MOVESWITCH::DIJKSTRA)) {
+			route_.clear();
+		}
+		if (ImGui::RadioButton("A*", &MoveSwitch_, MOVESWITCH::ASTAR)) {
+			route_.clear();
+		}
+
+		if (MoveSwitch_ >= BFS) {
+			if (ImGui::TreeNodeEx("Option", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Checkbox("DiplayRoute", &isDisplayRoute_);
+				ImGui::Checkbox("DiplayDist", &isDisplayDist_);
+				ImGui::TreePop();
+			}
+		}
+
+		ImGui::TreePop();
+	}
+
+
+
+	ImGui::End();
+
 }

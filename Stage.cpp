@@ -189,6 +189,9 @@ void Stage::Update()
 			setStageRects();
 			type_ = DIJKSTRA;
 		}
+		if (ImGui::Button("WeightReset")) {
+			GridWeightReset();
+		}
 		ImGui::TreePop();
 	}
 
@@ -219,8 +222,6 @@ void Stage::Draw()
 			default:
 				break;
 			}
-			//DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 2, std::to_string((int)stageData[y][x].num).c_str(), GetColor(255, 255, 255), TRUE);
-			//DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string((int)stageData[y][x].weight).c_str(), GetColor(255, 0, 255), TRUE);
 		}
 	}
 
@@ -251,6 +252,17 @@ void Stage::GridNumReset()
 		for (int x = 0; x < STAGE_WIDTH; x++)
 		{
 			stageData[y][x].num = -1;
+		}
+	}
+}
+
+void Stage::GridWeightReset()
+{
+	for (int y = 0; y < STAGE_HEIGHT; y++)
+	{
+		for (int x = 0; x < STAGE_WIDTH; x++)
+		{
+			stageData[y][x].weight = 0;
 		}
 	}
 }

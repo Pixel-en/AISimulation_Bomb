@@ -42,6 +42,7 @@ public:
 	void setStageRects();
 	void SetStageNum(int x, int y, int _num) { stageData[y][x].num = _num; }
 	void GridNumReset();
+	void GridWeightReset();
 	STAGETYPE GetStageType() { return type_; }
 };
 

@@ -10,6 +10,12 @@
 				return true;
 			return false;
 		}
+
+		const bool operator == (const Point& other) const {
+			if (x == other.x && y == other.y)
+				return true;
+			return false;
+		}
 	};
 
 	struct Pointf

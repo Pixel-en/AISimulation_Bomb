@@ -39,14 +39,14 @@ class Enemy :
 
     float ChengeTimer_;
     int algonum_;
+    bool isDisplayRoute_;
+    bool isDisplayDist_;
 
     struct Info
     {
         Point Nextpos;
         DIR dir;
     };
-
-    
 
     void MoveAlgo();
 
@@ -56,10 +56,13 @@ class Enemy :
     void LeftHandMove();    //ç∂éËñ@
     void BFSAlgo();
     void Dijkstra();
+    void AStar();
 
     vector<vector<int>> dist;
     vector<vector<Point>> pre;
-    std::deque<Info> root_;
+    std::deque<Info> route_;
+
+    void ImGuiOperation();
 public:
     Enemy();
     ~Enemy();
