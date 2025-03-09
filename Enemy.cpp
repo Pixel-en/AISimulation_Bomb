@@ -168,7 +168,7 @@ void Enemy::BFSAlgo()
 
 	route_.clear();
 
-	route_.push_back({ TargetGridPos.x,TargetGridPos.y ,DIR::NONE});
+	route_.push_back({ TargetGridPos.x,TargetGridPos.y ,DIR::NONE });
 
 	DIR SearchDir[4] = { DOWN,UP,RIGHT,LEFT };
 
@@ -193,7 +193,7 @@ void Enemy::Dijkstra()
 	Point sp = { pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT };
 	Point gp = { player->GetPositionPoint().x / CHA_WIDTH, player->GetPositionPoint().y / CHA_HEIGHT };
 
-	if (gp == PlayerOrigion_&& !route_.empty()) {
+	if (gp == PlayerOrigion_ && !route_.empty()) {
 
 		if (sp == route_.back().Nextpos) {
 			//目的地に着いたら次の方向を出す
@@ -289,7 +289,7 @@ void Enemy::AStar()
 	Point sp = { pos_.x / CHA_WIDTH, pos_.y / CHA_HEIGHT };
 	Point gp = { player->GetPositionPoint().x / CHA_WIDTH, player->GetPositionPoint().y / CHA_HEIGHT };
 
-	if (gp==PlayerOrigion_ && !route_.empty()) {
+	if (gp == PlayerOrigion_ && !route_.empty()) {
 
 		if (sp == route_.back().Nextpos) {
 			//目的地に着いたら次の方向を出す
@@ -343,7 +343,7 @@ void Enemy::AStar()
 			int gdist = abs(np.x - gp.x) + abs(np.y - gp.y);
 
 			//より到達コストが高い場合
-			if (dist[np.y][np.x] <= stageData[np.y][np.x].weight + c+gdist)
+			if (dist[np.y][np.x] <= stageData[np.y][np.x].weight + c + gdist)
 				continue;
 
 			//コスト更新
@@ -503,14 +503,22 @@ void Enemy::Draw()
 			}
 		}
 	}
+
 	{	//コスト表示
 		if (isDisplayDist_) {
+			Stage* stage = FindGameObject<Stage>();
 			for (int y = 0; y < STAGE_HEIGHT; y++)
 			{
 				for (int x = 0; x < STAGE_WIDTH; x++)
 				{
-					if (dist[y][x] < INT_MAX)
-						DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string(dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
+					if (MoveSwitch_ == BFS) {
+						if (stage->GetStageNum(x, y) != -1)
+							DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string(stage->GetStageNum(x, y)).c_str(), GetColor(255, 255, 255), TRUE);
+					}
+					else {
+						if (dist[y][x] < INT_MAX)
+							DrawString(x * CHA_WIDTH + 3, y * CHA_HEIGHT + 17, std::to_string(dist[y][x]).c_str(), GetColor(255, 255, 255), TRUE);
+					}
 				}
 			}
 		}
@@ -565,6 +573,11 @@ void Enemy::ImGuiOperation()
 				ImGui::Checkbox("DiplayDist", &isDisplayDist_);
 				ImGui::TreePop();
 			}
+		}
+		else {
+			isDisplayRoute_ = false;
+			isDisplayDist_ = false;
+			route_.clear();
 		}
 
 		ImGui::TreePop();

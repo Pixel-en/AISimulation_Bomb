@@ -41,6 +41,7 @@ public:
 	vector<vector<StageObj>>& GetStageGrid() { return stageData; }
 	void setStageRects();
 	void SetStageNum(int x, int y, int _num) { stageData[y][x].num = _num; }
+	int GetStageNum(int x, int y) { return stageData[y][x].num; }
 	void GridNumReset();
 	void GridWeightReset();
 	STAGETYPE GetStageType() { return type_; }
